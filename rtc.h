@@ -7,6 +7,7 @@
 #include <sys/time.h>
 #include <time.h>
 #include <lwip/apps/sntp.h>
+#include "esp_sntp.h"
 
 /**
   	@file rtc.h

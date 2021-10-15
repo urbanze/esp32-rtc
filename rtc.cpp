@@ -81,7 +81,7 @@ void RTC::set_simple(uint8_t day, uint8_t month, uint16_t year, uint8_t hour, ui
 /**
  * @brief Set actual internal RTC date automatic by NTP.
  * 
- * @attention This function will block code (task) for max 15secs.
+ * @attention This function will block code (task) for max 10secs.
  * @attention WiFi with internet connection is needed.
  * 
  * 
@@ -95,22 +95,30 @@ uint8_t RTC::set_ntp(const char *server, int8_t timezone=0)
 {
 	sntp_setoperatingmode(SNTP_OPMODE_POLL);
 	sntp_setservername(0, (char*)server);
+	sntp_set_sync_mode(SNTP_SYNC_MODE_IMMED);
 	sntp_init();
 
-	for (uint8_t i = 0; i < 60; i++)//15sec timeout
+	int8_t ok = 0;
+	for (int16_t i = 0; i < 100; i++)
 	{
-		vTaskDelay(pdMS_TO_TICKS(250));
-		if (get_unix() > 100000) {break;}
-	}
+		esp_task_wdt_reset();
+		vTaskDelay(pdMS_TO_TICKS(100));
 
-	if (get_unix() > 100000)//Sucess
+		if (sntp_get_sync_status() != SNTP_SYNC_STATUS_RESET)
+		{
+			ok = 1; break;
+		}
+	}
+	
+
+	sntp_stop();
+	if (ok)
 	{
 		tz = timezone;
 		return 1;
 	}
-	else//Fail
+	else
 	{
-		sntp_stop();
 		return 0;
 	}
 }
